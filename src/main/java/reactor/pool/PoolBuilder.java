@@ -19,6 +19,7 @@ import java.time.Duration;
 import java.util.Objects;
 import java.util.concurrent.Callable;
 import java.util.function.BiPredicate;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
@@ -196,7 +197,7 @@ public class PoolBuilder<T> {
      * @see #evictionPredicate(Predicate)
      */
     public PoolBuilder<T> evictionIdle(Duration maxIdleTime) {
-        return evictionPredicate(idlePredicate(maxIdleTime));
+        return evictionPredicate(EvictionPredicates.idleMoreThan(maxIdleTime));
     }
 
     /**
@@ -255,10 +256,6 @@ public class PoolBuilder<T> {
     @SuppressWarnings("unchecked")
     static <T> BiPredicate<T, PoolableMetrics>  neverPredicate() {
         return (BiPredicate<T, PoolableMetrics>) NEVER_PREDICATE;
-    }
-
-    static <T> BiPredicate<T, PoolableMetrics> idlePredicate(Duration maxIdleTime) {
-        return (it, metrics) -> metrics.idleTime() >= maxIdleTime.toMillis();
     }
 
     static final Function<?, Mono<Void>> NOOP_HANDLER    = it -> Mono.empty();
