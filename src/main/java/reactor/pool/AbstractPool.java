@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicIntegerFieldUpdater;
 import java.util.concurrent.atomic.AtomicLongFieldUpdater;
+import java.util.function.BiPredicate;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
@@ -82,7 +83,7 @@ abstract class AbstractPool<POOLABLE> implements Pool<POOLABLE> {
      * @param ref the {@link PooledRef} that is not part of the live set
      * @return the destroy {@link Mono}, which MUST be subscribed immediately
      */
-    Mono<Void> destroyPoolable(PooledRef<POOLABLE> ref) {
+    Mono<Void> destroyPoolable(AbstractPooledRef<POOLABLE> ref) {
         POOLABLE poolable = ref.poolable();
         poolConfig.allocationStrategy.returnPermits(1);
         long start = metricsRecorder.now();
@@ -105,7 +106,7 @@ abstract class AbstractPool<POOLABLE> implements Pool<POOLABLE> {
      *
      * @author Simon Baslé
      */
-    abstract static class AbstractPooledRef<T> implements PooledRef<T> {
+    abstract static class AbstractPooledRef<T> implements PooledRef<T>, PoolableMetrics {
 
         final long            creationTimestamp;
         final PoolMetricsRecorder metricsRecorder;
@@ -301,7 +302,7 @@ abstract class AbstractPool<POOLABLE> implements Pool<POOLABLE> {
          * be recycled, but could also be applied during an acquire attempt (detecting eg. idle resources) or by a background
          * reaping process.
          */
-        final Predicate<PooledRef<POOLABLE>> evictionPredicate;
+        final BiPredicate<POOLABLE, PoolableMetrics> evictionPredicate;
         /**
          * The {@link Scheduler} on which the {@link Pool} should publish resources, independently of which thread called
          * {@link Pool#acquire()} or {@link PooledRef#release()} or on which thread the {@link #allocator} produced new
@@ -321,7 +322,7 @@ abstract class AbstractPool<POOLABLE> implements Pool<POOLABLE> {
                           AllocationStrategy allocationStrategy,
                           Function<POOLABLE, Mono<Void>> releaseHandler,
                           Function<POOLABLE, Mono<Void>> destroyHandler,
-                          Predicate<PooledRef<POOLABLE>> evictionPredicate,
+                          BiPredicate<POOLABLE, PoolableMetrics> evictionPredicate,
                           Scheduler acquisitionScheduler,
                           PoolMetricsRecorder metricsRecorder) {
             this.allocator = allocator;

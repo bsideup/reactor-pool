@@ -72,7 +72,7 @@ class AffinityPoolTest {
                           .initialSize(minSize)
                           .sizeMax(maxSize)
                           .releaseHandler(pt -> Mono.fromRunnable(pt::clean))
-                          .evictionPredicate(slot -> !slot.poolable().isHealthy())
+                          .evictionPredicate((it, metrics) -> !it.isHealthy())
                           .buildConfig();
     }
 
@@ -86,7 +86,7 @@ class AffinityPoolTest {
                               poolableTest.clean();
                               additionalCleaner.accept(poolableTest);
                           }))
-                          .evictionPredicate(slot -> !slot.poolable().isHealthy())
+                          .evictionPredicate((it, metrics) -> !it.isHealthy())
                           .buildConfig();
     }
     //======
@@ -556,7 +556,7 @@ class AffinityPoolTest {
             DefaultPoolConfig<Integer> config = PoolBuilder.from(Mono.fromCallable(allocCounter::incrementAndGet))
                                                            .threadAffinity(true)
                                                            .sizeMax(3)
-                                                           .evictionPredicate(ref -> ref.acquireCount() >= 3)
+                                                           .evictionPredicate((it, metrics) -> metrics.acquireCount() >= 3)
                                                            .destroyHandler(i -> Mono.fromRunnable(destroyCounter::incrementAndGet))
                                                            .buildConfig();
             AffinityPool<Integer> pool = new AffinityPool<>(config);
@@ -587,7 +587,7 @@ class AffinityPoolTest {
                            .threadAffinity(true)
                            .sizeMax(3)
                            .releaseHandler(p -> Mono.fromRunnable(cleanerCount::incrementAndGet))
-                           .evictionPredicate(slot -> !slot.poolable().isHealthy())
+                           .evictionPredicate((it, metrics) -> !it.isHealthy())
                            .buildConfig());
 
         PoolableTest pt1 = new PoolableTest(1);
@@ -616,7 +616,7 @@ class AffinityPoolTest {
                            .sizeMax(3)
                            .initialSize(3)
                            .releaseHandler(p -> Mono.fromRunnable(cleanerCount::incrementAndGet))
-                           .evictionPredicate(slot -> !slot.poolable().isHealthy())
+                           .evictionPredicate((it, metrics) -> !it.isHealthy())
                            .buildConfig());
 
         PooledRef<PoolableTest> slot1 = pool.acquire().block();
@@ -655,7 +655,7 @@ class AffinityPoolTest {
                            .sizeMax(3)
                            .initialSize(3)
                            .releaseHandler(p -> Mono.fromRunnable(cleanerCount::incrementAndGet))
-                           .evictionPredicate(slot -> !slot.poolable().isHealthy())
+                           .evictionPredicate((it, metrics) -> !it.isHealthy())
                            .buildConfig());
 
         PooledRef<PoolableTest> slot1 = pool.acquire().block();
@@ -688,7 +688,7 @@ class AffinityPoolTest {
                            .threadAffinity(true)
                            .sizeMax(3)
                            .releaseHandler(p -> Mono.fromRunnable(cleanerCount::incrementAndGet))
-                           .evictionPredicate(slot -> !slot.poolable().isHealthy())
+                           .evictionPredicate((it, metrics) -> !it.isHealthy())
                            .buildConfig());
 
         assertThat(pool.availableElements).isEmpty();
@@ -707,7 +707,7 @@ class AffinityPoolTest {
                 PoolBuilder.from(Mono.fromCallable(PoolableTest::new))
                            .threadAffinity(true)
                            .sizeMax(3)
-                           .evictionPredicate(slot -> !slot.poolable().isHealthy())
+                           .evictionPredicate((it, metrics) -> !it.isHealthy())
                            .buildConfig());
 
         assertThat(pool.isDisposed()).as("not yet disposed").isFalse();
@@ -726,7 +726,7 @@ class AffinityPoolTest {
                            .threadAffinity(true)
                            .sizeMax(1)
                            .initialSize(1)
-                           .evictionPredicate(slot -> true)
+                           .evictionPredicate((it, metrics) -> true)
                            .buildConfig());
 
         pool.dispose();
@@ -742,7 +742,7 @@ class AffinityPoolTest {
                            .threadAffinity(true)
                            .sizeMax(1)
                            .initialSize(0)
-                           .evictionPredicate(f -> true)
+                           .evictionPredicate((it, metrics) -> true)
                            .buildConfig());
 
         assertThatExceptionOfType(IllegalStateException.class)
@@ -756,7 +756,7 @@ class AffinityPoolTest {
                                                       .threadAffinity(true)
                                                       .initialSize(1)
                                                       .sizeMax(1)
-                                                      .evictionPredicate(f -> true)
+                                                      .evictionPredicate((it, metrics) -> true)
                                                       .buildConfig();
 
         assertThatExceptionOfType(IllegalStateException.class)
@@ -778,7 +778,7 @@ class AffinityPoolTest {
                                .threadAffinity(true)
                                .initialSize(1)
                                .sizeMax(1)
-                               .evictionPredicate(f -> true)
+                               .evictionPredicate((it, metrics) -> true)
                                .buildConfig());
 
             pool.dispose();

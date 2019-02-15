@@ -66,7 +66,7 @@ class QueuePoolTest {
                 .initialSize(minSize)
                 .sizeMax(maxSize)
                 .releaseHandler(pt -> Mono.fromRunnable(pt::clean))
-                .evictionPredicate(slot -> !slot.poolable().isHealthy())
+                .evictionPredicate((it, metrics)-> !it.isHealthy())
                 .buildConfig();
     }
 
@@ -75,7 +75,7 @@ class QueuePoolTest {
                 .initialSize(minSize)
                 .sizeMax(maxSize)
                 .releaseHandler(pt -> Mono.fromRunnable(pt::clean))
-                .evictionPredicate(slot -> !slot.poolable().isHealthy())
+                .evictionPredicate((it, metrics) -> !it.isHealthy())
                 .acquisitionScheduler(deliveryScheduler)
                 .buildConfig();
     }
@@ -89,7 +89,7 @@ class QueuePoolTest {
                     poolableTest.clean();
                     additionalCleaner.accept(poolableTest);
                 }))
-                .evictionPredicate(slot -> !slot.poolable().isHealthy())
+                .evictionPredicate((it, metrics) -> !it.isHealthy())
                 .buildConfig();
     }
     //======
@@ -1164,7 +1164,7 @@ class QueuePoolTest {
                 from(Mono.fromCallable(PoolableTest::new))
                         .sizeMax(3)
                         .releaseHandler(p -> Mono.fromRunnable(cleanerCount::incrementAndGet))
-                        .evictionPredicate(slot -> !slot.poolable().isHealthy())
+                        .evictionPredicate((it, metrics) -> !it.isHealthy())
                         .buildConfig());
 
         PoolableTest pt1 = new PoolableTest(1);
@@ -1192,7 +1192,7 @@ class QueuePoolTest {
                         .sizeMax(3)
                         .initialSize(3)
                         .releaseHandler(p -> Mono.fromRunnable(cleanerCount::incrementAndGet))
-                        .evictionPredicate(slot -> !slot.poolable().isHealthy())
+                        .evictionPredicate((it, metrics) -> !it.isHealthy())
                         .buildConfig());
 
         PooledRef<PoolableTest> slot1 = pool.acquire().block();
@@ -1230,7 +1230,7 @@ class QueuePoolTest {
                         .sizeMax(3)
                         .initialSize(3)
                         .releaseHandler(p -> Mono.fromRunnable(cleanerCount::incrementAndGet))
-                        .evictionPredicate(slot -> !slot.poolable().isHealthy())
+                        .evictionPredicate((it, metrics) -> !it.isHealthy())
                         .buildConfig());
 
         PooledRef<PoolableTest> slot1 = pool.acquire().block();
@@ -1263,7 +1263,7 @@ class QueuePoolTest {
                         .initialSize(3)
                         .sizeMax(3)
                         .releaseHandler(p -> Mono.fromRunnable(cleanerCount::incrementAndGet))
-                        .evictionPredicate(slot -> !slot.poolable().isHealthy())
+                        .evictionPredicate((it, metrics) -> !it.isHealthy())
                         .buildConfig());
 
         PooledRef<PoolableTest> acquired1 = pool.acquire().block();
@@ -1292,7 +1292,7 @@ class QueuePoolTest {
                 from(Mono.fromCallable(PoolableTest::new))
                         .sizeMax(3)
                         .releaseHandler(p -> Mono.fromRunnable(cleanerCount::incrementAndGet))
-                        .evictionPredicate(slot -> !slot.poolable().isHealthy())
+                        .evictionPredicate((it, metrics) -> !it.isHealthy())
                         .buildConfig());
 
         assertThat(pool.elements).isEmpty();
@@ -1310,7 +1310,7 @@ class QueuePoolTest {
         QueuePool<PoolableTest> pool = new QueuePool<>(
                 from(Mono.fromCallable(PoolableTest::new))
                         .sizeMax(3)
-                        .evictionPredicate(slot -> !slot.poolable().isHealthy())
+                        .evictionPredicate((it, metrics) -> !it.isHealthy())
                         .buildConfig());
 
         assertThat(pool.isDisposed()).as("not yet disposed").isFalse();
@@ -1328,7 +1328,7 @@ class QueuePoolTest {
                 from(Mono.just(uniqueElement))
                         .sizeMax(1)
                         .initialSize(1)
-                        .evictionPredicate(slot -> true)
+                        .evictionPredicate((it, metrics) -> true)
                         .buildConfig());
 
         pool.dispose();
@@ -1343,7 +1343,7 @@ class QueuePoolTest {
                 from(Mono.<String>error(new IllegalStateException("boom")))
                         .sizeMax(1)
                         .initialSize(0)
-                        .evictionPredicate(f -> true)
+                        .evictionPredicate((it, metrics) -> true)
                         .buildConfig());
 
         assertThatExceptionOfType(IllegalStateException.class)
@@ -1356,7 +1356,7 @@ class QueuePoolTest {
         DefaultPoolConfig<Object> config = from(Mono.error(new IllegalStateException("boom")))
                 .initialSize(1)
                 .sizeMax(1)
-                .evictionPredicate(f -> true)
+                .evictionPredicate((it, metrics) -> true)
                 .buildConfig();
 
         assertThatExceptionOfType(IllegalStateException.class)
@@ -1377,7 +1377,7 @@ class QueuePoolTest {
                     from(Mono.just(closeable))
                             .initialSize(1)
                             .sizeMax(1)
-                            .evictionPredicate(f -> true)
+                            .evictionPredicate((it, metrics) -> true)
                             .buildConfig());
 
             pool.dispose();

@@ -163,7 +163,7 @@ abstract class AbstractTestMetrics {
         AtomicBoolean flip = new AtomicBoolean();
         //note the starter method here is irrelevant, only the config is created and passed to createPool
         DefaultPoolConfig<String> config = PoolBuilder.from(Mono.just("foo"))
-                .evictionPredicate(t -> true)
+                .evictionPredicate((it, metrics) -> true)
                 .destroyHandler(s -> {
                     if (flip.compareAndSet(false, true))
                         return Mono.delay(Duration.ofMillis(500)).then();
@@ -198,7 +198,7 @@ abstract class AbstractTestMetrics {
         AtomicReference<String> content = new AtomicReference<>("foo");
         //note the starter method here is irrelevant, only the config is created and passed to createPool
         DefaultPoolConfig<String> config = PoolBuilder.from(Mono.fromCallable(() -> content.getAndSet("bar")))
-                .evictionPredicate(ref -> "foo".equals(ref.poolable()))
+                .evictionPredicate((it, metrics) -> "foo".equals(it))
                 .metricsRecorder(recorder)
                 .buildConfig();
         Pool<String> pool = createPool(config);
@@ -218,7 +218,7 @@ abstract class AbstractTestMetrics {
         //note the starter method here is irrelevant, only the config is created and passed to createPool
         DefaultPoolConfig<Integer> config = PoolBuilder.from(Mono.fromCallable(allocCounter::incrementAndGet))
                 .sizeMax(2)
-                .evictionPredicate(ref -> ref.acquireCount() >= 2)
+                .evictionPredicate((it, metrics) -> metrics.acquireCount() >= 2)
                 .destroyHandler(i -> Mono.fromRunnable(destroyCounter::incrementAndGet))
                 .metricsRecorder(recorder)
                 .buildConfig();

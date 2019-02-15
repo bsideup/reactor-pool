@@ -109,7 +109,7 @@ final class QueuePool<POOLABLE> extends AbstractPool<POOLABLE> {
     @SuppressWarnings("WeakerAccess")
     final void maybeRecycleAndDrain(QueuePooledRef<POOLABLE> poolSlot) {
         if (pending != TERMINATED) {
-            if (!poolConfig.evictionPredicate.test(poolSlot)) {
+            if (!poolConfig.evictionPredicate.test(poolSlot.poolable(), poolSlot)) {
                 metricsRecorder.recordRecycled();
                 elements.offer(poolSlot);
             }
@@ -170,7 +170,7 @@ final class QueuePool<POOLABLE> extends AbstractPool<POOLABLE> {
                 if (slot == null) continue;
 
                 //TODO test the idle eviction scenario
-                if (poolConfig.evictionPredicate.test(slot)) {
+                if (poolConfig.evictionPredicate.test(slot.poolable(), slot)) {
                     destroyPoolable(slot).subscribe();
                     continue;
                 }

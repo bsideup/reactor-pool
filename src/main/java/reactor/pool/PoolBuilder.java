@@ -18,6 +18,7 @@ package reactor.pool;
 import java.time.Duration;
 import java.util.Objects;
 import java.util.concurrent.Callable;
+import java.util.function.BiPredicate;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
@@ -56,7 +57,7 @@ public class PoolBuilder<T> {
     AllocationStrategy      allocationStrategy   = AllocationStrategies.UNBOUNDED;
     Function<T, Mono<Void>> releaseHandler       = noopHandler();
     Function<T, Mono<Void>> destroyHandler       = noopHandler();
-    Predicate<PooledRef<T>> evictionPredicate    = neverPredicate();
+    BiPredicate<T, PoolableMetrics> evictionPredicate    = neverPredicate();
     Scheduler               acquisitionScheduler = Schedulers.immediate();
     PoolMetricsRecorder     metricsRecorder      = NoOpPoolMetricsRecorder.INSTANCE;
 
@@ -179,7 +180,7 @@ public class PoolBuilder<T> {
      * @return this {@link Pool} builder
      * @see #evictionIdle(Duration)
      */
-    public PoolBuilder<T> evictionPredicate(Predicate<PooledRef<T>> evictionPredicate) {
+    public PoolBuilder<T> evictionPredicate(BiPredicate<T, PoolableMetrics> evictionPredicate) {
         this.evictionPredicate = Objects.requireNonNull(evictionPredicate, "evictionPredicate");
         return this;
     }
@@ -252,15 +253,15 @@ public class PoolBuilder<T> {
     }
 
     @SuppressWarnings("unchecked")
-    static <T> Predicate<PooledRef<T>>  neverPredicate() {
-        return (Predicate<PooledRef<T>>) NEVER_PREDICATE;
+    static <T> BiPredicate<T, PoolableMetrics>  neverPredicate() {
+        return (BiPredicate<T, PoolableMetrics>) NEVER_PREDICATE;
     }
 
-    static <T> Predicate<PooledRef<T>> idlePredicate(Duration maxIdleTime) {
-        return slot -> slot.idleTime() >= maxIdleTime.toMillis();
+    static <T> BiPredicate<T, PoolableMetrics> idlePredicate(Duration maxIdleTime) {
+        return (it, metrics) -> metrics.idleTime() >= maxIdleTime.toMillis();
     }
 
     static final Function<?, Mono<Void>> NOOP_HANDLER    = it -> Mono.empty();
-    static final Predicate<?>            NEVER_PREDICATE = it -> false;
+    static final BiPredicate<?, PoolableMetrics>            NEVER_PREDICATE = (it, metrics) -> false;
 
 }

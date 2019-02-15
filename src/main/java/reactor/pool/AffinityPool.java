@@ -102,7 +102,7 @@ final class AffinityPool<POOLABLE> extends AbstractPool<POOLABLE> {
         if (element != null) {
 
             //TODO test this scenario
-            if (poolConfig.evictionPredicate.test(element)) {
+            if (poolConfig.evictionPredicate.test(element.poolable(), element)) {
                 destroyPoolable(element).subscribe(); //this returns a permit
                 allocateOrPend(subPool, borrower);
             }
@@ -387,7 +387,7 @@ final class AffinityPool<POOLABLE> extends AbstractPool<POOLABLE> {
 
             actual.onComplete();
 
-            if (!pool.poolConfig.evictionPredicate.test(slot)) {
+            if (!pool.poolConfig.evictionPredicate.test(slot.poolable(), slot)) {
                 pool.recycle(slot);
             }
             else {
