@@ -67,7 +67,7 @@ final class QueuePool<POOLABLE> extends AbstractPool<POOLABLE> {
     public QueuePool(DefaultPoolConfig<POOLABLE> poolConfig) {
         super(poolConfig, Loggers.getLogger(QueuePool.class));
         this.pending = new MpscLinkedQueue8<>(); //unbounded MPSC
-        int maxSize = poolConfig.allocationStrategy.estimatePermitCount();
+        int maxSize = poolConfig.sizeLimitStrategy.estimatePermitCount();
         if (maxSize == Integer.MAX_VALUE) {
             this.elements = new MpscLinkedQueue8<>();
         }
@@ -75,7 +75,7 @@ final class QueuePool<POOLABLE> extends AbstractPool<POOLABLE> {
             this.elements = new MpscArrayQueue<>(Math.max(2, maxSize));
         }
 
-        int initSize = poolConfig.allocationStrategy.getPermits(poolConfig.initialSize);
+        int initSize = poolConfig.sizeLimitStrategy.getPermits(poolConfig.initialSize);
         for (int i = 0; i < initSize; i++) {
             long start = metricsRecorder.now();
             try {
@@ -135,7 +135,7 @@ final class QueuePool<POOLABLE> extends AbstractPool<POOLABLE> {
         for (;;) {
             int availableCount = elements.size();
             int pendingCount = pending.size();
-            int permits = poolConfig.allocationStrategy.estimatePermitCount();
+            int permits = poolConfig.sizeLimitStrategy.estimatePermitCount();
 
             if (availableCount == 0) {
                 if (pendingCount > 0 && permits > 0) {
@@ -144,7 +144,9 @@ final class QueuePool<POOLABLE> extends AbstractPool<POOLABLE> {
                         continue;
                     }
                     ACQUIRED.incrementAndGet(this);
-                    if (borrower.get() || poolConfig.allocationStrategy.getPermits(1) != 1) {
+
+                    // TODO: This needs to be updated to handle getting more than one permit
+                    if (borrower.get() || poolConfig.sizeLimitStrategy.getPermits(1) != 1) {
                         ACQUIRED.decrementAndGet(this);
                         continue;
                     }
@@ -158,7 +160,7 @@ final class QueuePool<POOLABLE> extends AbstractPool<POOLABLE> {
                                     e -> {
                                         metricsRecorder.recordAllocationFailureAndLatency(metricsRecorder.measureTime(start));
                                         ACQUIRED.decrementAndGet(this);
-                                        poolConfig.allocationStrategy.returnPermits(1);
+                                        poolConfig.sizeLimitStrategy.returnPermits(1);
                                         borrower.fail(e);
                                     },
                                     () -> metricsRecorder.recordAllocationSuccessAndLatency(metricsRecorder.measureTime(start)));

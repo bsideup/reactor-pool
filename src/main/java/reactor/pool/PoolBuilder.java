@@ -19,7 +19,6 @@ import java.time.Duration;
 import java.util.Objects;
 import java.util.concurrent.Callable;
 import java.util.function.BiPredicate;
-import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
@@ -54,10 +53,13 @@ public class PoolBuilder<T> {
     final Mono<T> allocator;
 
     boolean                 isThreadAffinity     = true;
-    int                     initialSize          = 0;
-    AllocationStrategy      allocationStrategy   = AllocationStrategies.UNBOUNDED;
+    int initialSize = 0;
+    int minSize = 0;
+    int maxSize = Integer.MAX_VALUE;
+
     Function<T, Mono<Void>> releaseHandler       = noopHandler();
     Function<T, Mono<Void>> destroyHandler       = noopHandler();
+    SizeLimitStrategy sizeLimitStrategy;
     BiPredicate<T, PoolableMetrics> evictionPredicate    = neverPredicate();
     Scheduler               acquisitionScheduler = Schedulers.immediate();
     PoolMetricsRecorder     metricsRecorder      = NoOpPoolMetricsRecorder.INSTANCE;
@@ -109,33 +111,20 @@ public class PoolBuilder<T> {
      * @see #sizeMax(int)
      * @see #sizeUnbounded()
      */
-    public PoolBuilder<T> allocationStrategy(AllocationStrategy allocationStrategy) {
-        this.allocationStrategy = Objects.requireNonNull(allocationStrategy, "allocationStrategy");
+    public PoolBuilder<T> sizeLimitStrategy(SizeLimitStrategy sizeLimitStrategy) {
+        this.sizeLimitStrategy = Objects.requireNonNull(sizeLimitStrategy, "sizeLimitStrategy");
         return this;
     }
 
-	/**
-	 * Let the {@link Pool} allocate at most {@code max} resources, rejecting further allocations until
-	 * some resources have been {@link PooledRef#release() released}.
-	 *
-	 * @param max the maximum number of live resources to keep in the pool
-     * @return this {@link Pool} builder
-	 */
-	public PoolBuilder<T> sizeMax(int max) {
-		return allocationStrategy(new AllocationStrategies.SizeBasedAllocationStrategy(max));
-	}
+    public PoolBuilder<T> sizeMax(int maxSize) {
+        this.maxSize = maxSize;
+        return this;
+    }
 
-	/**
-	 * Let the {@link Pool} allocate new resources when no idle resource is available, without limit.
-	 * <p>
-	 * Note this is the default, if no previous call to {@link #allocationStrategy(AllocationStrategy)}
-	 * or {@link #sizeMax(int)} has been made on this {@link PoolBuilder}.
-	 *
-     * @return this {@link Pool} builder
-	 */
-	public PoolBuilder<T> sizeUnbounded() {
-		return allocationStrategy(AllocationStrategies.UNBOUNDED);
-	}
+    public PoolBuilder<T> sizeMin(int minSize) {
+        this.minSize = minSize;
+        return this;
+    }
 
     /**
      * Provide a {@link Function handler} that will derive a reset {@link Mono} whenever a resource is released.
@@ -241,7 +230,19 @@ public class PoolBuilder<T> {
 
     //kept package-private for the benefit of tests
     AbstractPool.DefaultPoolConfig<T> buildConfig() {
-        return new AbstractPool.DefaultPoolConfig<>(allocator, initialSize, allocationStrategy,
+        SizeLimitStrategy sizeLimitStrategy;
+
+        if (this.sizeLimitStrategy != null) {
+            sizeLimitStrategy = this.sizeLimitStrategy;
+        }
+        else if (minSize == 0 && maxSize == Integer.MAX_VALUE) {
+            sizeLimitStrategy = SizeLimitStrategies.UNBOUNDED;
+        }
+        else {
+            sizeLimitStrategy = new SizeLimitStrategies.BoundedSizeLimitStrategy(minSize, maxSize);
+        }
+
+        return new AbstractPool.DefaultPoolConfig<>(allocator, initialSize, sizeLimitStrategy,
                 releaseHandler,
                 destroyHandler,
                 evictionPredicate,

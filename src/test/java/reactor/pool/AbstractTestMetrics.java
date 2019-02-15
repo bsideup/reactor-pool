@@ -217,7 +217,7 @@ abstract class AbstractTestMetrics {
         AtomicInteger destroyCounter = new AtomicInteger();
         //note the starter method here is irrelevant, only the config is created and passed to createPool
         DefaultPoolConfig<Integer> config = PoolBuilder.from(Mono.fromCallable(allocCounter::incrementAndGet))
-                .sizeMax(2)
+                .allocationMaxSize(2)
                 .evictionPredicate((it, metrics) -> metrics.acquireCount() >= 2)
                 .destroyHandler(i -> Mono.fromRunnable(destroyCounter::incrementAndGet))
                 .metricsRecorder(recorder)
@@ -253,7 +253,7 @@ abstract class AbstractTestMetrics {
         AtomicInteger allocCounter = new AtomicInteger();
         //note the starter method here is irrelevant, only the config is created and passed to createPool
         DefaultPoolConfig<Integer> config = PoolBuilder.from(Mono.fromCallable(allocCounter::incrementAndGet))
-                .sizeMax(2)
+                .allocationMaxSize(2)
                 .initialSize(2)
                 .metricsRecorder(recorder)
                 .buildConfig();
@@ -281,7 +281,7 @@ abstract class AbstractTestMetrics {
         AtomicInteger allocCounter = new AtomicInteger();
         //note the starter method here is irrelevant, only the config is created and passed to createPool
         DefaultPoolConfig<Integer> config = PoolBuilder.from(Mono.fromCallable(allocCounter::incrementAndGet))
-                .sizeMax(2)
+                .allocationMaxSize(2)
                 .initialSize(2)
                 .metricsRecorder(recorder)
                 .buildConfig();

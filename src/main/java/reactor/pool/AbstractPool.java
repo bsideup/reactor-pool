@@ -77,7 +77,7 @@ abstract class AbstractPool<POOLABLE> implements Pool<POOLABLE> {
     }
 
     /**
-     * Apply the configured destroyHandler to get the destroy {@link Mono} AND return a permit to the {@link AllocationStrategy},
+     * Apply the configured destroyHandler to get the destroy {@link Mono} AND return a permit to the {@link SizeLimitStrategy},
      * which assumes that the {@link Mono} will always be subscribed immediately.
      *
      * @param ref the {@link PooledRef} that is not part of the live set
@@ -85,7 +85,7 @@ abstract class AbstractPool<POOLABLE> implements Pool<POOLABLE> {
      */
     Mono<Void> destroyPoolable(AbstractPooledRef<POOLABLE> ref) {
         POOLABLE poolable = ref.poolable();
-        poolConfig.allocationStrategy.returnPermits(1);
+        poolConfig.sizeLimitStrategy.returnPermits(1);
         long start = metricsRecorder.now();
         metricsRecorder.recordLifetimeDuration(ref.lifeTime());
         Function<POOLABLE, Mono<Void>> factory = poolConfig.destroyHandler;
@@ -279,9 +279,9 @@ abstract class AbstractPool<POOLABLE> implements Pool<POOLABLE> {
          */
         final int                            initialSize;
         /**
-         * {@link AllocationStrategy} defines a strategy / limit for the number of pooled object to allocate.
+         * {@link SizeLimitStrategy} defines a strategy / limit for the number of pooled object to allocate.
          */
-        final AllocationStrategy             allocationStrategy;
+        final SizeLimitStrategy sizeLimitStrategy;
         /**
          * When a resource is {@link PooledRef#release() released}, defines a mechanism of resetting any lingering state of
          * the resource in order for it to become usable again. The {@link #evictionPredicate} is applied AFTER this reset.
@@ -319,7 +319,7 @@ abstract class AbstractPool<POOLABLE> implements Pool<POOLABLE> {
 
         DefaultPoolConfig(Mono<POOLABLE> allocator,
                           int initialSize,
-                          AllocationStrategy allocationStrategy,
+                          SizeLimitStrategy sizeLimitStrategy,
                           Function<POOLABLE, Mono<Void>> releaseHandler,
                           Function<POOLABLE, Mono<Void>> destroyHandler,
                           BiPredicate<POOLABLE, PoolableMetrics> evictionPredicate,
@@ -327,7 +327,7 @@ abstract class AbstractPool<POOLABLE> implements Pool<POOLABLE> {
                           PoolMetricsRecorder metricsRecorder) {
             this.allocator = allocator;
             this.initialSize = initialSize;
-            this.allocationStrategy = allocationStrategy;
+            this.sizeLimitStrategy = sizeLimitStrategy;
             this.releaseHandler = releaseHandler;
             this.destroyHandler = destroyHandler;
             this.evictionPredicate = evictionPredicate;
