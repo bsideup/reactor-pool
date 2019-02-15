@@ -66,21 +66,6 @@ final class AffinityPool<POOLABLE> extends AbstractPool<POOLABLE> {
         else {
             this.availableElements = new MpmcArrayQueue<>(Math.max(maxSize, 2));
         }
-
-        int toBuild = poolConfig.sizeLimitStrategy.getPermits(poolConfig.initialSize);
-
-        for (int i = 0; i < toBuild; i++) {
-            long start = poolConfig.metricsRecorder.now();
-            try {
-                POOLABLE poolable = Objects.requireNonNull(poolConfig.allocator.block(), "allocator returned null in constructor");
-                poolConfig.metricsRecorder.recordAllocationSuccessAndLatency(poolConfig.metricsRecorder.measureTime(start));
-                availableElements.offer(new AffinityPooledRef<>(this, poolable)); //the pool slot won't access this pool instance until after it has been constructed
-            }
-            catch (Throwable t) {
-                poolConfig.metricsRecorder.recordAllocationFailureAndLatency(poolConfig.metricsRecorder.measureTime(start));
-                throw t;
-            }
-        }
     }
 
     @Override

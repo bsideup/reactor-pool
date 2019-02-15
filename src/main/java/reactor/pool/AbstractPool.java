@@ -273,11 +273,6 @@ abstract class AbstractPool<POOLABLE> implements Pool<POOLABLE> {
          * The asynchronous factory that produces new resources, represented as a {@link Mono}.
          */
         final Mono<POOLABLE>                 allocator;
-        //TODO to be removed
-        /**
-         * The minimum number of objects a {@link Pool} should create at initialization.
-         */
-        final int                            initialSize;
         /**
          * {@link SizeLimitStrategy} defines a strategy / limit for the number of pooled object to allocate.
          */
@@ -318,7 +313,6 @@ abstract class AbstractPool<POOLABLE> implements Pool<POOLABLE> {
         final PoolMetricsRecorder            metricsRecorder;
 
         DefaultPoolConfig(Mono<POOLABLE> allocator,
-                          int initialSize,
                           SizeLimitStrategy sizeLimitStrategy,
                           Function<POOLABLE, Mono<Void>> releaseHandler,
                           Function<POOLABLE, Mono<Void>> destroyHandler,
@@ -326,7 +320,6 @@ abstract class AbstractPool<POOLABLE> implements Pool<POOLABLE> {
                           Scheduler acquisitionScheduler,
                           PoolMetricsRecorder metricsRecorder) {
             this.allocator = allocator;
-            this.initialSize = initialSize;
             this.sizeLimitStrategy = sizeLimitStrategy;
             this.releaseHandler = releaseHandler;
             this.destroyHandler = destroyHandler;
